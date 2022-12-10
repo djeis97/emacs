@@ -6687,6 +6687,21 @@ x_fill_rectangle (struct frame *f, GC gc, int x, int y, int width, int height,
 /* Graphics primitives.  */
 
 static void
+x_fill_rectangle_transp (struct frame *f, int x, int y, int width, int height)
+{
+#ifdef USE_CAIRO
+  Display *dpy = FRAME_X_DISPLAY (f);
+  cairo_t *cr;
+
+  cr = x_begin_cr_clip (f, f->output_data.x->normal_gc);
+  cairo_set_source_rgba(cr, 1, 1, 1, 0);
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  cairo_rectangle (cr, x, y, width, height);
+  cairo_fill (cr);
+  x_end_cr_clip (f);
+
+#endif
+}
 x_clear_rectangle (struct frame *f, GC gc, int x, int y, int width, int height,
 		   bool respect_alpha_background)
 {
@@ -7469,14 +7484,8 @@ x_draw_window_divider (struct window *w, int x0, int x1, int y0, int y1)
 			      : FRAME_FOREGROUND_PIXEL (f));
   Display *display = FRAME_X_DISPLAY (f);
 
-  cairo_t *cr;
 
-  cr = x_begin_cr_clip (f, f->output_data.x->normal_gc);
-  cairo_set_source_rgba(cr, 1, 1, 1, 0);
-  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-  cairo_rectangle (cr, x0, y0, x1-x0, y1-y0);
-  cairo_fill (cr);
-  x_end_cr_clip (f);
+  x_fill_rectangle_transp(f, x0, y0, x1-x0, y1-y0);
 }
 
 #ifdef HAVE_XDBE
@@ -7682,11 +7691,10 @@ x_clear_under_internal_border (struct frame *f)
 	  GC gc = f->output_data.x->normal_gc;
 
 	  XSetForeground (display, gc, color);
-	  x_fill_rectangle (f, gc, 0, margin, width, border, false);
-	  x_fill_rectangle (f, gc, 0, 0, border, height, false);
-	  x_fill_rectangle (f, gc, width - border, 0, border, height, false);
-	  x_fill_rectangle (f, gc, 0, height - bottom_margin - border,
-			    width, border, false);
+	  x_fill_rectangle_transp (f, 0, margin, width, border);
+	  x_fill_rectangle_transp (f, 0, 0, border, height);
+	  x_fill_rectangle_transp (f, width - border, 0, border, height);
+	  x_fill_rectangle_transp (f, 0, height - bottom_margin - border, width, border);
 	  XSetForeground (display, gc, FRAME_FOREGROUND_PIXEL (f));
 	}
       else
