@@ -6686,6 +6686,24 @@ x_fill_rectangle (struct frame *f, GC gc, int x, int y, int width, int height,
 /* Graphics primitives.  */
 
 static void
+x_fill_rectangle_transp (struct frame *f, int x, int y, int width, int height)
+{
+#ifdef USE_CAIRO
+  Display *dpy = FRAME_X_DISPLAY (f);
+  cairo_t *cr;
+
+  cr = x_begin_cr_clip (f, f->output_data.x->normal_gc);
+  cairo_set_source_rgba(cr, 1, 1, 1, 0);
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  cairo_rectangle (cr, x, y, width, height);
+  cairo_fill (cr);
+  x_end_cr_clip (f);
+
+#endif
+}
+
+
+static void
 x_clear_rectangle (struct frame *f, GC gc, int x, int y, int width, int height,
 		   bool respect_alpha_background)
 {
@@ -7482,49 +7500,7 @@ x_draw_window_divider (struct window *w, int x0, int x1, int y0, int y1)
 			      : FRAME_FOREGROUND_PIXEL (f));
   Display *display = FRAME_X_DISPLAY (f);
 
-  if ((y1 - y0 > x1 - x0) && (x1 - x0 >= 3))
-    /* A vertical divider, at least three pixels wide: Draw first and
-       last pixels differently.  */
-    {
-      XSetForeground (display, f->output_data.x->normal_gc, color_first);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x0, y0, 1, y1 - y0,
-                        f->borders_respect_alpha_background);
-      XSetForeground (display, f->output_data.x->normal_gc, color);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x0 + 1, y0, x1 - x0 - 2, y1 - y0,
-                        f->borders_respect_alpha_background);
-      XSetForeground (display, f->output_data.x->normal_gc, color_last);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x1 - 1, y0, 1, y1 - y0,
-                        f->borders_respect_alpha_background);
-    }
-  else if ((x1 - x0 > y1 - y0) && (y1 - y0 >= 3))
-    /* A horizontal divider, at least three pixels high: Draw first and
-       last pixels differently.  */
-    {
-      XSetForeground (display, f->output_data.x->normal_gc, color_first);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x0, y0, x1 - x0, 1,
-                        f->borders_respect_alpha_background);
-      XSetForeground (display, f->output_data.x->normal_gc, color);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x0, y0 + 1, x1 - x0, y1 - y0 - 2,
-                        f->borders_respect_alpha_background);
-      XSetForeground (display, f->output_data.x->normal_gc, color_last);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x0, y1 - 1, x1 - x0, 1,
-                        f->borders_respect_alpha_background);
-    }
-  else
-    {
-    /* In any other case do not draw the first and last pixels
-       differently.  */
-      XSetForeground (display, f->output_data.x->normal_gc, color);
-      x_fill_rectangle (f, f->output_data.x->normal_gc,
-			x0, y0, x1 - x0, y1 - y0,
-                        f->borders_respect_alpha_background);
-    }
+  x_fill_rectangle_transp(f, x0, y0, x1-x0, y1-y0);
 }
 
 #ifdef HAVE_XDBE
@@ -7724,15 +7700,10 @@ x_clear_under_internal_border (struct frame *f)
 	  GC gc = f->output_data.x->normal_gc;
 
 	  XSetForeground (display, gc, color);
-	  x_fill_rectangle (f, gc, 0, margin, width, border,
-                            f->borders_respect_alpha_background);
-	  x_fill_rectangle (f, gc, 0, 0, border, height,
-                            f->borders_respect_alpha_background);
-	  x_fill_rectangle (f, gc, width - border, 0, border, height,
-                            f->borders_respect_alpha_background);
-	  x_fill_rectangle (f, gc, 0, height - bottom_margin - border,
-			    width, border,
-                            f->borders_respect_alpha_background);
+	  x_fill_rectangle_transp (f, 0, margin, width, border);
+	  x_fill_rectangle_transp (f, 0, 0, border, height);
+	  x_fill_rectangle_transp (f, width - border, 0, border, height);
+	  x_fill_rectangle_transp (f, 0, height - bottom_margin - border, width, border);
 	  XSetForeground (display, gc, FRAME_FOREGROUND_PIXEL (f));
 	}
       else
